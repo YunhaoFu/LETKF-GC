@@ -16,7 +16,7 @@ include './parameter.h'
                           x_ens_atm, lonxy_atm, latxy_atm,              &
                           x_ens_lnd, grid2patch_start, grid2patch_count,&
                                      lonxy_lnd, latxy_lnd,              &
-                                     itypwat                            & ! todo_colm_invar #1
+                                     itypwat,lb_patch                   & ! todo_colm_invar #1
                                      ) 
             character(*)         , intent(in)       ::      bkg_dir
             character(*)         , intent(in)       ::      obs_dir
@@ -39,6 +39,7 @@ include './parameter.h'
             real(r4), allocatable, intent(inout)    ::      latxy_lnd(:,:)
 
             integer , allocatable, intent(inout)    ::      itypwat(:,:) ! todo_colm_invar #2
+            integer , allocatable, intent(inout)    ::      lb_patch(:,:)
             !===================================================================
             !                     MODEL STATE
             !===================================================================
@@ -120,7 +121,7 @@ include './parameter.h'
                                         itypwat) ! todo_colm_invar #3
                 endif 
                 call colm2x_ens(x_ens_lnd,lnd_buf,fvar,first_read_colm, &
-                                ens,ens_size,numpatch,itypwat           ) ! todo_colm_var #1
+                                ens,ens_size,numpatch,itypwat,lb_patch  ) ! todo_colm_var #1
                 first_read_colm   = .false.
             enddo
             print *, ''
@@ -131,13 +132,15 @@ include './parameter.h'
                                 ftune,fcon,fvar,oro,topo,mask)
         endsubroutine readin
 
-        subroutine writeout(nobs,ana_dir,ens_size,x_ens_atm,x_ens_lnd,itypwat)
+        subroutine writeout(nobs,ana_dir,ens_size,x_ens_atm,x_ens_lnd,    &
+                            itypwat,lb_patch)
             integer              , intent(in)       ::      nobs
             character(*)         , intent(in)       ::      ana_dir
             integer              , intent(in)       ::      ens_size
             real(r4), allocatable, intent(inout)    ::      x_ens_atm(:,:,:,:)
             real(r8), allocatable, intent(inout)    ::      x_ens_lnd(:,:,:)
             integer , allocatable, intent(inout)    ::      itypwat(:,:) ! todo_colm_invar #4
+            integer , allocatable, intent(inout)    ::      lb_patch(:,:)
             !===================================================================
             !                     MODEL STATE
             !===================================================================
@@ -193,7 +196,7 @@ include './parameter.h'
                                 ixy_patch,jxy_patch,mxy_patch,wtxy_patch,&
                                 ftune,fcon,fvar,oro,topo,mask,first_read_colm )
                 call x_ens2colm(x_ens_lnd,lnd_buf,fvar,first_read_colm, &
-                                ens,ens_size,numpatch,itypwat           ) ! todo_colm_var #2
+                                ens,ens_size,numpatch,itypwat,lb_patch  ) ! todo_colm_var #2
                 first_read_colm   = .false.
                 call colm_output(ana_dir,ens,num,numpatch,idate,         &
                                 ixy_patch,jxy_patch,mxy_patch,wtxy_patch,&
@@ -374,7 +377,7 @@ include './parameter.h'
         endsubroutine colm_invar_read
 
         subroutine colm2x_ens(x_ens_lnd,lnd_buf,fvar,first_read_colm, &
-                              ens,ens_size,numpatch,itypwat           ) ! todo_colm_var #3
+                              ens,ens_size,numpatch,itypwat,lb_patch  ) ! todo_colm_var #3
             real(r8), allocatable, intent(inout)   ::      x_ens_lnd(:,:,:)
             real(r8), allocatable, intent(in)      ::      fvar(:,:)
             logical              , intent(in)      ::      first_read_colm
@@ -383,14 +386,14 @@ include './parameter.h'
             integer              , intent(in)      ::      numpatch
             integer                                ::      cnt, l, np, nl
             integer, allocatable , intent(in)      ::      itypwat(:,:) ! todo_colm_var #4
-            integer, allocatable                   ::      lb_patch(:)
+            integer, allocatable , intent(inout)   ::      lb_patch(:,:)! todo_colm_var #
             real(r8), allocatable, intent(inout)   ::      lnd_buf (:,:)
 
             if(first_read_colm) then
                 allocate(x_ens_lnd(ens_size,numpatch,nvar_lnd))
-                allocate(lnd_buf  (numpatch,sum(var_len)))
+                allocate(lnd_buf(numpatch,sum(var_len)))
+                allocate(lb_patch(ens_size,numpatch))
             endif
-            allocate(lb_patch   (numpatch))
 
             l = 0
             do cnt=1,nvar_lnd_raw
@@ -398,33 +401,33 @@ include './parameter.h'
                 lnd_buf(:,l-var_len(cnt)+1:l) = fvar(:,var_idx_s(cnt):var_idx_s(cnt)+var_len(cnt)-1)
             enddo
             
-            lb_patch = 5
+            lb_patch(ens,:) = 5
             do np=1,numpatch
                 if(itypwat(np,1) > itypwat_max) cycle
                 do nl=1,5
-                    if(lnd_buf(np,15+nl)+lnd_buf(np,30+nl) > 0.) lb_patch(np) = lb_patch(np) - 1
+                    if(lnd_buf(np,15+nl)+lnd_buf(np,30+nl) > 0.) lb_patch(ens,np) = lb_patch(ens,np) - 1
                 enddo
                 ! todo_speedy #1
-                if(lnd_buf(np,0+lb_patch(np)+1) /= lnd_buf(np,46)) then
+                if(lnd_buf(np,0+lb_patch(ens,np)+1) /= lnd_buf(np,46)) then
                     print *, 'patch: ', np, 'itypwat: ', itypwat(np,1)
-                    print *, "t_soil  at  : ", 0+lb_patch(np)+1," :", lnd_buf(np,0+lb_patch(np)+1)
+                    print *, "t_soil  at  : ", 0+lb_patch(ens,np)+1," :", lnd_buf(np,0+lb_patch(ens,np)+1)
                     print *, "t_grnd      : ", lnd_buf(np,46)
                     print *, "t_soil at whole: ", lnd_buf(np,1:15)
                     stop 23
                 endif
                 cnt = 0
                 cnt = cnt + 1
-                x_ens_lnd(ens,np,cnt) = lnd_buf(np,0+lb_patch(np)+1)    ! todo_colm_var #5 tss[1]
+                x_ens_lnd(ens,np,cnt) = lnd_buf(np,0+lb_patch(ens,np)+1)    ! todo_colm_var #5 tss[1]
                 cnt = cnt + 1
-                x_ens_lnd(ens,np,cnt) = lnd_buf(np,0+lb_patch(np)+1+1)  ! todo_colm_var #6 tss[2]
+                x_ens_lnd(ens,np,cnt) = lnd_buf(np,0+lb_patch(ens,np)+1+1)  ! todo_colm_var #6 tss[2]
                 cnt = cnt + 1
-                x_ens_lnd(ens,np,cnt) = lnd_buf(np,15+lb_patch(np)+1)   ! todo_colm_var #7 wliq[1]
+                x_ens_lnd(ens,np,cnt) = lnd_buf(np,15+lb_patch(ens,np)+1)   ! todo_colm_var #7 wliq[1]
                 cnt = cnt + 1
-                x_ens_lnd(ens,np,cnt) = lnd_buf(np,15+lb_patch(np)+1+1) ! todo_colm_var #8 wliq[2]
+                x_ens_lnd(ens,np,cnt) = lnd_buf(np,15+lb_patch(ens,np)+1+1) ! todo_colm_var #8 wliq[2]
                 cnt = cnt + 1
-                x_ens_lnd(ens,np,cnt) = lnd_buf(np,30+lb_patch(np)+1)   ! todo_colm_var #9 wice[1]
+                x_ens_lnd(ens,np,cnt) = lnd_buf(np,30+lb_patch(ens,np)+1)   ! todo_colm_var #9 wice[1]
                 cnt = cnt + 1
-                x_ens_lnd(ens,np,cnt) = lnd_buf(np,30+lb_patch(np)+1+1) ! todo_colm_var #10 wice[2]
+                x_ens_lnd(ens,np,cnt) = lnd_buf(np,30+lb_patch(ens,np)+1+1) ! todo_colm_var #10 wice[2]
                 cnt = cnt + 1
                 x_ens_lnd(ens,np,cnt) = lnd_buf(np,46)                  ! todo_colm_var #11 tg
                 cnt = cnt + 1
@@ -444,12 +447,10 @@ include './parameter.h'
                 deallocate(lnd_buf)
             endif
 
-            deallocate(lb_patch)
-
         endsubroutine colm2x_ens
 
         subroutine x_ens2colm(x_ens_lnd,lnd_buf,fvar,first_read_colm, &
-                              ens,ens_size,numpatch,itypwat           ) ! todo_colm_var #15
+                              ens,ens_size,numpatch,itypwat,lb_patch  ) ! todo_colm_var #15
             real(r8), allocatable, intent(inout)   ::      x_ens_lnd(:,:,:)
             real(r8), allocatable, intent(inout)   ::      fvar(:,:)
             logical              , intent(in)      ::      first_read_colm
@@ -458,7 +459,7 @@ include './parameter.h'
             integer              , intent(in)      ::      numpatch
             integer                                ::      cnt, l, np, nl
             integer, allocatable , intent(in)      ::      itypwat(:,:) ! todo_colm_var #16
-            integer, allocatable                   ::      lb_patch(:)
+            integer , allocatable , intent(in)     ::      lb_patch(:,:)
             real(r8), allocatable, intent(inout)   ::      lnd_buf (:,:)
             integer                                ::      lenth 
             real(r8)                               ::      scv_inc(numpatch)
@@ -469,7 +470,6 @@ include './parameter.h'
             if(first_read_colm) then
                 allocate(lnd_buf  (numpatch,lenth))
             endif
-            allocate(lb_patch   (numpatch))
 
             l = 0
             do cnt=1,nvar_lnd_raw
@@ -478,33 +478,32 @@ include './parameter.h'
             enddo
             lnd_buf(:,lenth) = fvar(:,scv_idx)
             
-            lb_patch = 5
             do np=1,numpatch
                 if(itypwat(np,1) > itypwat_max) cycle
-                do nl=1,5
-                    if(lnd_buf(np,15+nl)+lnd_buf(np,30+nl) > 0.) lb_patch(np) = lb_patch(np) - 1
-                enddo
-                ! todo_speedy #2
-                if(lnd_buf(np,0+lb_patch(np)+1) /= lnd_buf(np,46)) then
-                    print *, 'patch: ', np, 'itypwat: ', itypwat(np,1)
-                    print *, "t_soil  at  : ", 0+lb_patch(np)+1," :", lnd_buf(np,0+lb_patch(np)+1)
-                    print *, "t_grnd      : ", lnd_buf(np,46)
-                    print *, "t_soil at whole: ", lnd_buf(np,1:15)
-                    stop 23
-                endif
+                !do nl=1,5
+                !    if(lnd_buf(np,15+nl)+lnd_buf(np,30+nl) > 0.) lb_patch(ens,np) = lb_patch(ens,np) - 1
+                !enddo
+                !! todo_speedy #2
+                !if(lnd_buf(np,0+lb_patch(ens,np)+1) /= lnd_buf(np,46)) then
+                !    print *, 'patch: ', np, 'itypwat: ', itypwat(np,1)
+                !    print *, "t_soil  at  : ", 0+lb_patch(ens,np)+1," :", lnd_buf(np,0+lb_patch(ens,np)+1)
+                !    print *, "t_grnd      : ", lnd_buf(np,46)
+                !    print *, "t_soil at whole: ", lnd_buf(np,1:15)
+                !    stop 23
+                !endif
                 cnt = 0
                 cnt = cnt + 1
-                lnd_buf(np,0+lb_patch(np)+1)    = x_ens_lnd(ens,np,cnt)   ! todo_colm_var #17 tss[1]
+                lnd_buf(np,0+lb_patch(ens,np)+1)    = x_ens_lnd(ens,np,cnt)   ! todo_colm_var #17 tss[1]
                 cnt = cnt + 1
-                lnd_buf(np,0+lb_patch(np)+1+1)  = x_ens_lnd(ens,np,cnt)   ! todo_colm_var #18 tss[2]
+                lnd_buf(np,0+lb_patch(ens,np)+1+1)  = x_ens_lnd(ens,np,cnt)   ! todo_colm_var #18 tss[2]
                 cnt = cnt + 1
-                lnd_buf(np,15+lb_patch(np)+1)   = x_ens_lnd(ens,np,cnt)   ! todo_colm_var #19 wliq[1]
+                lnd_buf(np,15+lb_patch(ens,np)+1)   = x_ens_lnd(ens,np,cnt)   ! todo_colm_var #19 wliq[1]
                 cnt = cnt + 1
-                lnd_buf(np,15+lb_patch(np)+1+1) = x_ens_lnd(ens,np,cnt)   ! todo_colm_var #20 wliq[2]
+                lnd_buf(np,15+lb_patch(ens,np)+1+1) = x_ens_lnd(ens,np,cnt)   ! todo_colm_var #20 wliq[2]
                 cnt = cnt + 1
-                lnd_buf(np,30+lb_patch(np)+1)   = x_ens_lnd(ens,np,cnt)   ! todo_colm_var #21 wice[1]
+                lnd_buf(np,30+lb_patch(ens,np)+1)   = x_ens_lnd(ens,np,cnt)   ! todo_colm_var #21 wice[1]
                 cnt = cnt + 1
-                lnd_buf(np,30+lb_patch(np)+1+1) = x_ens_lnd(ens,np,cnt)   ! todo_colm_var #22 wice[2]
+                lnd_buf(np,30+lb_patch(ens,np)+1+1) = x_ens_lnd(ens,np,cnt)   ! todo_colm_var #22 wice[2]
                 cnt = cnt + 1
                 lnd_buf(np,46)                  = x_ens_lnd(ens,np,cnt)   ! todo_colm_var #23 tg
                 cnt = cnt + 1
@@ -542,8 +541,6 @@ include './parameter.h'
                 deallocate(lnd_buf)
                 deallocate(x_ens_lnd)
             endif
-
-            deallocate(lb_patch)
 
         endsubroutine x_ens2colm
 

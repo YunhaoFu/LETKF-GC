@@ -63,10 +63,10 @@ include './parameter.h'
 
         endsubroutine da_init
 
-        subroutine da_final(nobs,lonxy_atm,latxy_atm,           &
+        subroutine da_final(nobs,lonxy_atm,latxy_atm,              &
                                grid2patch_start, grid2patch_count, &
                                lonxy_lnd,latxy_lnd,                &
-                               v1)                                 ! todo_colm_invar #1 
+                               v1,lb_patch)                              ! todo_colm_invar #1 
             integer              , intent(in)       ::      nobs
             real(r4), allocatable, intent(inout)    ::      lonxy_atm(:,:)
             real(r4), allocatable, intent(inout)    ::      latxy_atm(:,:)
@@ -75,6 +75,7 @@ include './parameter.h'
             real(r4), allocatable, intent(inout)    ::      lonxy_lnd(:,:)
             real(r4), allocatable, intent(inout)    ::      latxy_lnd(:,:)
             integer , allocatable, intent(inout)    ::      v1(:,:) ! todo_colm_invar #2
+            integer , allocatable, intent(inout)    ::      lb_patch(:,:)
             integer                                 ::      cnt1=0
 
             if(nobs > 0) then
@@ -92,6 +93,7 @@ include './parameter.h'
                     print *, 'num = ', rd_invar_cnt, ', due num = ', cnt1
                     stop 22
                 endif
+                deallocate(lb_patch)
             endif
             print *, ''
             write(*, "('============================== ** Finalized ** =================================')")

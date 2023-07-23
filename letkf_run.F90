@@ -32,6 +32,7 @@ include './parameter.h'
     real(r4), allocatable    ::    lonxy_lnd(:,:)
     real(r4), allocatable    ::    latxy_lnd(:,:)
     integer , allocatable    ::    itypwat(:,:)                  ! todo_colm_invar #1
+    integer , allocatable    ::    lb_patch(:,:)                 ! todo_colm_var #
 
     real                     ::    omb_max
     real                     ::    infl
@@ -45,7 +46,7 @@ include './parameter.h'
                 x_ens_atm, lonxy_atm, latxy_atm,              &
                 x_ens_lnd, grid2patch_start, grid2patch_count,&
                 lonxy_lnd, latxy_lnd,                         &
-                itypwat                                       ) ! todo_colm_invar #2
+                itypwat,lb_patch                              ) ! todo_colm_invar #2
     
     call letkf_ini(ens_size,nobs,olat,olon,hdxb,error,omb,    &
                    x_ens_atm,lonxy_atm,latxy_atm,             &
@@ -59,11 +60,12 @@ include './parameter.h'
 
     call letkf_fnl(nobs,olat,olon,hdxb,error,omb)
 
-    call writeout(nobs,ana_dir,ens_size,x_ens_atm,x_ens_lnd,itypwat)
+    call writeout(nobs,ana_dir,ens_size,x_ens_atm,x_ens_lnd,  &
+                  itypwat,lb_patch                            )
     
-    call da_final(nobs,lonxy_atm,latxy_atm,                &
+    call da_final(nobs,lonxy_atm,latxy_atm,           &
                   grid2patch_start, grid2patch_count, &
                   lonxy_lnd,latxy_lnd,                &
-                  itypwat                             )     ! todo_colm_invar #5
+                  itypwat,lb_patch                    )     ! todo_colm_invar #5
 
 end program letkf_run
