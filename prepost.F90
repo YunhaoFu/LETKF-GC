@@ -595,6 +595,10 @@ include './parameter.h'
                     hxb2(cnt) = tbb (s) + tbb_bmo(s,ens)          ! cal cnt*H(x) satisfying qc == 0
                 enddo
                 hxb_mean = sum(hxb2(1:cnt))/real(ens_size)
+                ! todo_obs # replace bad hxb with mean(hxb with good quality)
+                do ens=1,ens_size
+                    if(qc_flag(s,ens) /= 0) hxb1(ens) = hxb_mean
+                enddo
                 if(cnt < ens_min .or. &                           ! valid ens < ens_min
                    abs(tbb(s)-hxb_mean) > omb_max) cycle          ! abs(omb) > omb_max
                 nobs = nobs + 1
