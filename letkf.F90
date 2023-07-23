@@ -33,10 +33,11 @@ include './parameter.h'
 
     contains
         
-        subroutine letkf_ini(ens_size,nobs,olat,olon,hdxb,error,omb,    &
+        subroutine letkf_ini(ens_size,numpatch,nobs,olat,olon,hdxb,error,omb,&
                              x_ens_atm,lonxy_atm,latxy_atm,             &
                              x_ens_lnd,lonxy_lnd,latxy_lnd,itypwat      ) ! todo_colm_invar #1
             integer              , intent(in)   ::    ens_size
+            integer              , intent(in)   ::    numpatch
             integer              , intent(in)   ::    nobs
             real    , allocatable, intent(in)   ::    olat(:)
             real    , allocatable, intent(in)   ::    olon(:)
@@ -55,13 +56,14 @@ include './parameter.h'
 
         endsubroutine letkf_ini
 
-        subroutine letkf_drv(ens_size,nobs,olat,olon,hdxb,error,omb,    &
+        subroutine letkf_drv(ens_size,numpatch,nobs,olat,olon,hdxb,error,omb, &
                              x_ens_atm,lonxy_atm,latxy_atm,             &
                              x_ens_lnd,lonxy_lnd,latxy_lnd,itypwat,     & ! todo_colm_invar #3
                              grid2patch_start,grid2patch_count,         &
-                             infl,radius)
+                             infl,radius,lb_patch                       )
 
             integer              , intent(in)   ::    ens_size
+            integer              , intent(in)   ::    numpatch
             integer              , intent(in)   ::    nobs
             real    , allocatable, intent(in)   ::    olat(:)
             real    , allocatable, intent(in)   ::    olon(:)
@@ -79,18 +81,27 @@ include './parameter.h'
             integer, allocatable , intent(in)   ::    grid2patch_count(:,:)
             real                 , intent(in)   ::    infl
             real                 , intent(in)   ::    radius(2)
+            integer, allocatable , intent(in)   ::    lb_patch(:,:)
+            logical                             ::    skip(numpatch)
+            integer                             ::    np
 
             if(nobs == 0) return
+
+            ! skip when lb in ensemble are different
+            skip(:) = .false.
+            do np=1,numpatch
+                if(maxval(lb_patch(:,np)) /= minval(lb_patch(:,np))) skip(np) = .true.
+            enddo
 
             print *, '******************* LETKF RUN **********************'
 
             call atm_da(ens_size,nobs,olat,olon,hdxb,error,omb,    &
                         x_ens_atm,lonxy_atm,latxy_atm,             &
                         infl,radius                                )
-            call lnd_da(ens_size,nobs,olat,olon,hdxb,error,omb,    &
+            call lnd_da(ens_size,numpatch,nobs,olat,olon,hdxb,error,omb,&
                         x_ens_lnd,lonxy_lnd,latxy_lnd,itypwat,     & ! todo_colm_invar #5
                         grid2patch_start,grid2patch_count,         &
-                        infl,radius                                )
+                        infl,radius,skip                           )
 
             print *, '****************** LETKF OVER **********************'
 
@@ -195,11 +206,12 @@ include './parameter.h'
 
         endsubroutine atm_da
 
-        subroutine lnd_da(ens_size,nobs,olat,olon,hdxb,error,omb,    &
+        subroutine lnd_da(ens_size,numpatch,nobs,olat,olon,hdxb,error,omb,&
                           x_ens_lnd,lonxy,latxy,itypwat,             & ! todo_colm_invar #6
                           grid2patch_start,grid2patch_count,         &
-                          infl,radius)
+                          infl,radius,skip                           )
             integer              , intent(in)   ::    ens_size
+            integer              , intent(in)   ::    numpatch
             integer              , intent(in)   ::    nobs
             real    , allocatable, intent(in)   ::    olat(:)
             real    , allocatable, intent(in)   ::    olon(:)
@@ -214,16 +226,15 @@ include './parameter.h'
             integer, allocatable , intent(in)   ::    grid2patch_count(:,:)
             real                 , intent(in)   ::    infl
             real                 , intent(in)   ::    radius(2)
+            logical              , intent(in)   ::    skip(numpatch)
 
             integer                             ::    i, j, nvar, ens, ns, idx
             type(kd_root)                       ::    obs_tree
             real(r4), allocatable               ::    bkg_mean(:,:)
             real(r4), allocatable               ::    bkg(:,:,:)
-            integer                             ::    numpatch, np
+            integer                             ::    np
 
             call kd_init(obs_tree,olon(1:nobs),olat(1:nobs))
-
-            numpatch = size(itypwat,1)
 
             allocate(bkg_mean(numpatch,nvar_lnd))
             allocate(bkg(ens_size,numpatch,nvar_lnd))
@@ -280,7 +291,7 @@ include './parameter.h'
                         !apply the trans calculated above into different var within the same lat lon, i.e., novertical localization
                         do nvar=1,nvar_lnd
                             do np=grid2patch_start(i,j),grid2patch_start(i,j)+grid2patch_count(i,j)-1
-                                if(itypwat(np,1) > itypwat_max) cycle
+                                if(itypwat(np,1) > itypwat_max .or. skip(np)) cycle
                                 call dgemm('n', 'n', 1, ens_size, ens_size, 1.0_r8, real(bkg(:,np,nvar),kind=r8), &
                                     1, trans, ens_size, 0.0_r8, x_ens_lnd(:,np,nvar), 1)
                             enddo

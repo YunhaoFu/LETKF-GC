@@ -11,7 +11,7 @@ include './parameter.h'
     public      ::    readin  , writeout
 
     contains
-        subroutine readin(bkg_dir,obs_dir,ens_size,                     &
+        subroutine readin(bkg_dir,obs_dir,ens_size,numpatch,            &
                           nobs,olat,olon,hdxb,error,omb,qc_ens,omb_max, &
                           x_ens_atm, lonxy_atm, latxy_atm,              &
                           x_ens_lnd, grid2patch_start, grid2patch_count,&
@@ -21,6 +21,7 @@ include './parameter.h'
             character(*)         , intent(in)       ::      bkg_dir
             character(*)         , intent(in)       ::      obs_dir
             integer              , intent(in)       ::      ens_size
+            integer              , intent(out)      ::      numpatch
             integer              , intent(inout)    ::      nobs
             real    , allocatable, intent(inout)    ::      olat         (:)
             real    , allocatable, intent(inout)    ::      olon         (:)
@@ -58,7 +59,6 @@ include './parameter.h'
             real(r4), allocatable        ::      v10(:, :, :)
             logical                      ::      first_read_grapes = .true.
             !--------------------------- colm ---------------------------
-            integer                      ::      numpatch
             integer                      ::      idate(3)
             integer , allocatable        ::      ixy_patch(:)
             integer , allocatable        ::      jxy_patch(:)

@@ -26,6 +26,7 @@ include './parameter.h'
     real(r4), allocatable    ::    lonxy_atm(:,:)
     real(r4), allocatable    ::    latxy_atm(:,:)
 
+    integer                  ::    numpatch
     real(r8), allocatable    ::    x_ens_lnd(:,:,:)
     integer, allocatable     ::    grid2patch_start(:,:)
     integer, allocatable     ::    grid2patch_count(:,:)
@@ -41,22 +42,22 @@ include './parameter.h'
     call da_init(bkg_dir,ana_dir,obs_dir,ens_size,    &
                  qc_ens,omb_max,infl,radius           )          
 
-    call readin(bkg_dir,obs_dir,ens_size,                     &
+    call readin(bkg_dir,obs_dir,ens_size,numpatch,            &
                 nobs,olat,olon,hdxb,error,omb,qc_ens,omb_max, &
                 x_ens_atm, lonxy_atm, latxy_atm,              &
                 x_ens_lnd, grid2patch_start, grid2patch_count,&
                 lonxy_lnd, latxy_lnd,                         &
                 itypwat,lb_patch                              ) ! todo_colm_invar #2
     
-    call letkf_ini(ens_size,nobs,olat,olon,hdxb,error,omb,    &
+    call letkf_ini(ens_size,numpatch,nobs,olat,olon,hdxb,error,omb,&
                    x_ens_atm,lonxy_atm,latxy_atm,             &
                    x_ens_lnd,lonxy_lnd,latxy_lnd,itypwat      ) ! todo_colm_invar #3
 
-    call letkf_drv(ens_size,nobs,olat,olon,hdxb,error,omb,    &
+    call letkf_drv(ens_size,numpatch,nobs,olat,olon,hdxb,error,omb,    &
                    x_ens_atm,lonxy_atm,latxy_atm,             &
                    x_ens_lnd,lonxy_lnd,latxy_lnd,itypwat,     & ! todo_colm_invar #4
                    grid2patch_start,grid2patch_count,         &
-                   infl,radius)
+                   infl,radius,lb_patch                       )
 
     call letkf_fnl(nobs,olat,olon,hdxb,error,omb)
 
