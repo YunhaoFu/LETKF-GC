@@ -530,9 +530,6 @@ include './parameter.h'
                 scv_inc(np) = scv_inc(np) - lnd_buf(np,lenth)
             enddo
 
-            print *, 'scv increment check: '
-            print *, maxval(scv_inc,mask=scv_inc /= 0), minval(scv_inc,mask=scv_inc /= 0)
-
             l = 0
             do cnt=1,nvar_lnd_raw
                 l = l + var_len(cnt)
