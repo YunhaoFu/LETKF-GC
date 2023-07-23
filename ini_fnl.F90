@@ -68,14 +68,14 @@ include './parameter.h'
                                lonxy_lnd,latxy_lnd,                &
                                v1,lb_patch)                              ! todo_colm_invar #1 
             integer              , intent(in)       ::      nobs
-            real(r4), allocatable, intent(inout)    ::      lonxy_atm(:,:)
-            real(r4), allocatable, intent(inout)    ::      latxy_atm(:,:)
-            integer , allocatable, intent(inout)    ::      grid2patch_start(:,:)
-            integer , allocatable, intent(inout)    ::      grid2patch_count(:,:)
-            real(r4), allocatable, intent(inout)    ::      lonxy_lnd(:,:)
-            real(r4), allocatable, intent(inout)    ::      latxy_lnd(:,:)
-            integer , allocatable, intent(inout)    ::      v1(:,:) ! todo_colm_invar #2
-            integer , allocatable, intent(inout)    ::      lb_patch(:,:)
+            real(r4), allocatable, intent(out)      ::      lonxy_atm(:,:)
+            real(r4), allocatable, intent(out)      ::      latxy_atm(:,:)
+            integer , allocatable, intent(out)      ::      grid2patch_start(:,:)
+            integer , allocatable, intent(out)      ::      grid2patch_count(:,:)
+            real(r4), allocatable, intent(out)      ::      lonxy_lnd(:,:)
+            real(r4), allocatable, intent(out)      ::      latxy_lnd(:,:)
+            integer , allocatable, intent(out)      ::      v1(:,:) ! todo_colm_invar #2
+            integer , allocatable, intent(out)      ::      lb_patch(:,:)
             integer                                 ::      cnt1=0
 
             if(nobs > 0) then

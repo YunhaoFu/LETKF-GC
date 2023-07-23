@@ -315,11 +315,11 @@ include './parameter.h'
 
         subroutine letkf_fnl(nobs,olat,olon,hdxb,error,omb)
             integer              , intent(in)   ::    nobs
-            real    , allocatable, intent(inout)::    olat(:)
-            real    , allocatable, intent(inout)::    olon(:)
-            real    , allocatable, intent(inout)::    hdxb(:,:)
-            real    , allocatable, intent(inout)::    error(:)
-            real    , allocatable, intent(inout)::    omb(:)
+            real    , allocatable, intent(out)  ::    olat(:)
+            real    , allocatable, intent(out)  ::    olon(:)
+            real    , allocatable, intent(out)  ::    hdxb(:,:)
+            real    , allocatable, intent(out)  ::    error(:)
+            real    , allocatable, intent(out)  ::    omb(:)
 
             if(nobs == 0) then
                 print *, 'no observation assimilated'
