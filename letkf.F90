@@ -87,7 +87,7 @@ include './parameter.h'
 
             if(nobs == 0) return
 
-            ! skip when lb in ensemble are different
+            ! skip when lb in ensemble are different, tested !
             skip(:) = .false.
             do np=1,numpatch
                 if(maxval(lb_patch(:,np)) /= minval(lb_patch(:,np))) skip(np) = .true.
