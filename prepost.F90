@@ -460,9 +460,14 @@ include './parameter.h'
             integer, allocatable , intent(in)      ::      itypwat(:,:) ! todo_colm_var #16
             integer, allocatable                   ::      lb_patch(:)
             real(r8), allocatable, intent(inout)   ::      lnd_buf (:,:)
+            integer                                ::      lenth 
+            real(r8)                               ::      scv_inc(numpatch)
+
+            ! todo_colm_var #17
+            lenth = sum(var_len)+1
 
             if(first_read_colm) then
-                allocate(lnd_buf  (numpatch,sum(var_len)))
+                allocate(lnd_buf  (numpatch,lenth))
             endif
             allocate(lb_patch   (numpatch))
 
@@ -471,6 +476,7 @@ include './parameter.h'
                 l = l + var_len(cnt)
                 lnd_buf(:,l-var_len(cnt)+1:l) = fvar(:,var_idx_s(cnt):var_idx_s(cnt)+var_len(cnt)-1)
             enddo
+            lnd_buf(:,lenth) = fvar(:,scv_idx)
             
             lb_patch = 5
             do np=1,numpatch
@@ -514,11 +520,26 @@ include './parameter.h'
                 stop 24
             endif
 
+            scv_inc(:) = 0.0
+            do np=1,numpatch
+                if(itypwat(np,1) > itypwat_max) cycle
+                do nl=1,5
+                    scv_inc(np) = scv_inc(np) + lnd_buf(np,15+nl) + lnd_buf(np,30+nl)
+                enddo
+                lnd_buf(np,lenth) = scv_inc(np)
+                scv_inc(np) = scv_inc(np) - lnd_buf(np,lenth)
+            enddo
+
+            print *, 'scv increment check: '
+            print *, maxval(scv_inc,mask=scv_inc /= 0), minval(scv_inc,mask=scv_inc /= 0)
+
             l = 0
             do cnt=1,nvar_lnd_raw
                 l = l + var_len(cnt)
                 fvar(:,var_idx_s(cnt):var_idx_s(cnt)+var_len(cnt)-1) = lnd_buf(:,l-var_len(cnt)+1:l)
             enddo
+
+            fvar(:,scv_idx) = lnd_buf(:,lenth)
 
             if(ens == ens_size) then
                 deallocate(lnd_buf)

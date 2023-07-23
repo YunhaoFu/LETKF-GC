@@ -14,6 +14,7 @@
     integer, parameter            ::   invar_len  (rd_invar_cnt)&
                                          = (/ 1 /)              ! length for land water type        [itypwat]
     ! todo_colm_var #1
+    integer, parameter            ::   scv_idx            = 81  ! id for scv in case wliq, wice is changed
     integer, parameter            ::   nvar_lnd_raw       = 6   ! 1(tss)+1(wliq)+1(wice)+1(tg)+1(tlsun)+1(tlsha)
     integer, parameter            ::   nvar_lnd           = 9   ! 2(tss)+2(wliq)+2(wice)+1(tg)+1(tlsun)+1(tlsha)
     integer, parameter            ::   var_idx_s(nvar_lnd_raw)&     
