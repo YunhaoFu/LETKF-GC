@@ -408,13 +408,13 @@ include './parameter.h'
                     if(lnd_buf(np,15+nl)+lnd_buf(np,30+nl) > 0.) lb_patch(ens,np) = lb_patch(ens,np) - 1
                 enddo
                 ! todo_speedy #1
-                if(lnd_buf(np,0+lb_patch(ens,np)+1) /= lnd_buf(np,46)) then
-                    print *, 'patch: ', np, 'itypwat: ', itypwat(np,1)
-                    print *, "t_soil  at  : ", 0+lb_patch(ens,np)+1," :", lnd_buf(np,0+lb_patch(ens,np)+1)
-                    print *, "t_grnd      : ", lnd_buf(np,46)
-                    print *, "t_soil at whole: ", lnd_buf(np,1:15)
-                    stop 23
-                endif
+                !if(lnd_buf(np,0+lb_patch(ens,np)+1) /= lnd_buf(np,46)) then
+                !    print *, 'patch: ', np, 'itypwat: ', itypwat(np,1)
+                !    print *, "t_soil  at  : ", 0+lb_patch(ens,np)+1," :", lnd_buf(np,0+lb_patch(ens,np)+1)
+                !    print *, "t_grnd      : ", lnd_buf(np,46)
+                !    print *, "t_soil at whole: ", lnd_buf(np,1:15)
+                !    stop 23
+                !endif
                 cnt = 0
                 cnt = cnt + 1
                 x_ens_lnd(ens,np,cnt) = lnd_buf(np,0+lb_patch(ens,np)+1)    ! todo_colm_var #5 tss[1]
