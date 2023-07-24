@@ -71,7 +71,6 @@ include './parameter.h'
             real(r8), allocatable        ::      topo(:,:)
             real(r8), allocatable        ::      mask(:,:)
             logical                      ::      first_read_colm = .true.
-            real(r8), allocatable        ::      lnd_buf(:,:)
             !===================================================================
             !                     OBS STATE
             !===================================================================
@@ -114,14 +113,14 @@ include './parameter.h'
                                 ixy_patch,jxy_patch,mxy_patch,wtxy_patch,&
                                 ftune,fcon,fvar,oro,topo,mask,first_read_colm )
                 if(first_read_colm) then
-                    call colm_grid2patch_init(ixy_patch,jxy_patch,numpatch,    &
+                    call colm_grid2patch_init(numpatch,ixy_patch,jxy_patch,    &
                                              grid2patch_start, grid2patch_count)
-                    call colm_grid_init(fcon,grid2patch_start,lonxy_lnd,latxy_lnd)
+                    call colm_grid_init(numpatch,fcon,grid2patch_start,lonxy_lnd,latxy_lnd)
                     call colm_invar_read(numpatch,fcon, &
                                         itypwat) ! todo_colm_invar #3
                 endif 
-                call colm2x_ens(x_ens_lnd,lnd_buf,fvar,first_read_colm, &
-                                ens,ens_size,numpatch,itypwat,lb_patch  ) ! todo_colm_var #1
+                call colm2x_ens(numpatch,x_ens_lnd,fvar,first_read_colm, &
+                                ens,ens_size,itypwat,lb_patch  ) ! todo_colm_var #1
                 first_read_colm   = .false.
             enddo
             print *, ''
@@ -172,7 +171,6 @@ include './parameter.h'
             real(r8), allocatable        ::      topo(:,:)
             real(r8), allocatable        ::      mask(:,:)
             logical                      ::      first_read_colm = .true.
-            real(r8), allocatable        ::      lnd_buf(:,:)
             !---------------------- temp use ------------------------
             integer                      ::    ens, num
 
@@ -195,8 +193,8 @@ include './parameter.h'
                 call colm_input(ana_dir,ens,num,numpatch,idate,          &
                                 ixy_patch,jxy_patch,mxy_patch,wtxy_patch,&
                                 ftune,fcon,fvar,oro,topo,mask,first_read_colm )
-                call x_ens2colm(x_ens_lnd,lnd_buf,fvar,first_read_colm, &
-                                ens,ens_size,numpatch,itypwat,lb_patch  ) ! todo_colm_var #2
+                call x_ens2colm(numpatch,x_ens_lnd,fvar,first_read_colm, &
+                                ens,ens_size,itypwat,lb_patch  ) ! todo_colm_var #2
                 first_read_colm   = .false.
                 call colm_output(ana_dir,ens,num,numpatch,idate,         &
                                 ixy_patch,jxy_patch,mxy_patch,wtxy_patch,&
@@ -239,8 +237,8 @@ include './parameter.h'
             integer              , intent(in)         ::      ens
             logical              , intent(in)         ::      first_read_grapes
             ! todo_grapes #4
-            real(r4), allocatable, intent(in)         ::      v1(:, :, :)
-            real(r4), allocatable, intent(in)         ::      v2(:, :, :)
+            real(r4)             , intent(in)         ::      v1(lon_points_atm,lat_points_atm,level_atm)
+            real(r4)             , intent(in)         ::      v2(lon_points_atm,lat_points_atm,level_atm)
 
             integer                                   ::      l, level
 
@@ -274,8 +272,8 @@ include './parameter.h'
             integer              , intent(in)         ::      ens
             integer              , intent(in)         ::      ens_size
             ! todo_grapes #7
-            real(r4), allocatable, intent(inout)      ::      v1(:, :, :)
-            real(r4), allocatable, intent(inout)      ::      v2(:, :, :)
+            real(r4)             , intent(inout)      ::      v1(lon_points_atm,lat_points_atm,level_atm)
+            real(r4)             , intent(inout)      ::      v2(lon_points_atm,lat_points_atm,level_atm)
 
             integer                                   ::      l, level
 
@@ -303,11 +301,11 @@ include './parameter.h'
 
         endsubroutine x_ens2grapes
 
-        subroutine colm_grid2patch_init(ixy_patch,jxy_patch,numpatch,    &
+        subroutine colm_grid2patch_init(numpatch,ixy_patch,jxy_patch,    &
                                         grid2patch_start, grid2patch_count)
-            integer , allocatable, intent(in)       ::      ixy_patch(:)
-            integer , allocatable, intent(in)       ::      jxy_patch(:)
             integer              , intent(in)       ::      numpatch
+            integer              , intent(in)       ::      ixy_patch(numpatch)
+            integer              , intent(in)       ::      jxy_patch(numpatch)
             integer , allocatable, intent(inout)    ::      grid2patch_start(:,:)
             integer , allocatable, intent(inout)    ::      grid2patch_count(:,:)
             integer                                 ::      i, j, k, i_save, j_save
@@ -332,9 +330,10 @@ include './parameter.h'
             
         endsubroutine colm_grid2patch_init
 
-        subroutine colm_grid_init(fcon,grid2patch_start,lonxy_lnd,latxy_lnd)
-            real(r8), allocatable, intent(in)       ::      fcon(:,:)
-            integer , allocatable, intent(in)       ::      grid2patch_start(:,:)
+        subroutine colm_grid_init(numpatch,fcon,grid2patch_start,lonxy_lnd,latxy_lnd)
+            integer              , intent(in)       ::      numpatch
+            real(r8)             , intent(in)       ::      fcon(numpatch,nfcon)
+            integer              , intent(in)       ::      grid2patch_start(lon_points_lnd,lat_points_lnd)
             real(r4), allocatable, intent(inout)    ::      lonxy_lnd(:,:)
             real(r4), allocatable, intent(inout)    ::      latxy_lnd(:,:)
             integer                                 ::      i, j, k, i_save, j_save
@@ -355,11 +354,9 @@ include './parameter.h'
         subroutine colm_invar_read(numpatch, fcon, &
                                   v1) ! todo_colm_invar #5
             integer              , intent(in)       ::      numpatch
-            real(r8), allocatable, intent(in)       ::      fcon(:,:)
-
+            real(r8)             , intent(in)       ::      fcon(numpatch,nfcon)
             ! todo_colm_invar #6
             integer , allocatable, intent(inout)    ::      v1  (:,:)
-
             integer                                 ::      cnt = 0
 
             cnt = cnt + 1 
@@ -376,22 +373,21 @@ include './parameter.h'
 
         endsubroutine colm_invar_read
 
-        subroutine colm2x_ens(x_ens_lnd,lnd_buf,fvar,first_read_colm, &
-                              ens,ens_size,numpatch,itypwat,lb_patch  ) ! todo_colm_var #3
+        subroutine colm2x_ens(numpatch,x_ens_lnd,fvar,first_read_colm, &
+                              ens,ens_size,itypwat,lb_patch  ) ! todo_colm_var #3
+            integer              , intent(in)      ::      numpatch
             real(r8), allocatable, intent(inout)   ::      x_ens_lnd(:,:,:)
-            real(r8), allocatable, intent(in)      ::      fvar(:,:)
+            real(r8)             , intent(in)      ::      fvar(numpatch,nfvar)
             logical              , intent(in)      ::      first_read_colm
             integer              , intent(in)      ::      ens
             integer              , intent(in)      ::      ens_size
-            integer              , intent(in)      ::      numpatch
             integer                                ::      cnt, l, np, nl
-            integer, allocatable , intent(in)      ::      itypwat(:,:) ! todo_colm_var #4
+            integer              , intent(in)      ::      itypwat(numpatch,1) ! todo_colm_var #4
             integer, allocatable , intent(inout)   ::      lb_patch(:,:)! todo_colm_var #
-            real(r8), allocatable, intent(inout)   ::      lnd_buf (:,:)
+            real(r8)                               ::      lnd_buf(numpatch,sum(var_len))
 
             if(first_read_colm) then
                 allocate(x_ens_lnd(ens_size,numpatch,nvar_lnd))
-                allocate(lnd_buf(numpatch,sum(var_len)))
                 allocate(lb_patch(ens_size,numpatch))
             endif
 
@@ -443,33 +439,23 @@ include './parameter.h'
                 stop 24
             endif
 
-            if(ens == ens_size) then
-                deallocate(lnd_buf)
-            endif
-
         endsubroutine colm2x_ens
 
-        subroutine x_ens2colm(x_ens_lnd,lnd_buf,fvar,first_read_colm, &
-                              ens,ens_size,numpatch,itypwat,lb_patch  ) ! todo_colm_var #15
+        subroutine x_ens2colm(numpatch,x_ens_lnd,fvar,first_read_colm, &
+                              ens,ens_size,itypwat,lb_patch            ) ! todo_colm_var #15
+            integer              , intent(in)      ::      numpatch
             real(r8), allocatable, intent(inout)   ::      x_ens_lnd(:,:,:)
-            real(r8), allocatable, intent(inout)   ::      fvar(:,:)
+            real(r8)             , intent(inout)   ::      fvar(numpatch,nfvar)
             logical              , intent(in)      ::      first_read_colm
             integer              , intent(in)      ::      ens
             integer              , intent(in)      ::      ens_size
-            integer              , intent(in)      ::      numpatch
+            integer              , intent(in)      ::      itypwat(numpatch,1) ! todo_colm_var #16
+            integer              , intent(in)      ::      lb_patch(ens_size,numpatch)
             integer                                ::      cnt, l, np, nl
-            integer, allocatable , intent(in)      ::      itypwat(:,:) ! todo_colm_var #16
-            integer , allocatable , intent(in)     ::      lb_patch(:,:)
-            real(r8), allocatable, intent(inout)   ::      lnd_buf (:,:)
-            integer                                ::      lenth 
-            real(r8)                               ::      scv_inc(numpatch)
-
             ! todo_colm_var #17
-            lenth = sum(var_len)+1
-
-            if(first_read_colm) then
-                allocate(lnd_buf  (numpatch,lenth))
-            endif
+            integer , parameter                    ::      lenth = sum(var_len)+1  ! 1 for scv
+            real(r8)                               ::      lnd_buf(numpatch,lenth)
+            real(r8)                               ::      scv_inc(numpatch)
 
             l = 0
             do cnt=1,nvar_lnd_raw
@@ -536,11 +522,6 @@ include './parameter.h'
             enddo
 
             fvar(:,scv_idx) = lnd_buf(:,lenth)
-
-            if(ens == ens_size) then
-                deallocate(lnd_buf)
-                deallocate(x_ens_lnd)
-            endif
 
         endsubroutine x_ens2colm
 
