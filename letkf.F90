@@ -51,14 +51,14 @@ include './parameter.h'
                              grid2patch_start,grid2patch_count,         &
                              infl,radius,lb_patch                       )
 
-            integer              , intent(in)   ::    ens_size
-            integer              , intent(in)   ::    numpatch
-            integer              , intent(in)   ::    nobs
-            real    , allocatable, intent(in)   ::    olat(:)
-            real    , allocatable, intent(in)   ::    olon(:)
-            real    , allocatable, intent(in)   ::    hdxb(:,:)
-            real    , allocatable, intent(in)   ::    error(:)
-            real    , allocatable, intent(in)   ::    omb(:)
+            integer , intent(in)    ::    ens_size
+            integer , intent(in)    ::    numpatch
+            integer , intent(in)    ::    nobs
+            real    , intent(in)    ::    olat(nobs)
+            real    , intent(in)    ::    olon(nobs)
+            real    , intent(in)    ::    hdxb(nobs,ens_size)
+            real    , intent(in)    ::    error(nobs)
+            real    , intent(in)    ::    omb(nobs)
             real(r4),  intent(inout)::    x_ens_atm(ens_size,lon_points_atm,lat_points_atm,nvar_atm)
             real(r4),  intent(in)   ::    lonxy_atm(lon_points_atm,lat_points_atm)
             real(r4),  intent(in)   ::    latxy_atm(lon_points_atm,lat_points_atm)
@@ -77,10 +77,12 @@ include './parameter.h'
             if(nobs == 0) return
 
             ! skip when lb in ensemble are different, tested !
-            skip(:) = .false.
-            do np=1,numpatch
-                if(maxval(lb_patch(:,np)) /= minval(lb_patch(:,np))) skip(np) = .true.
-            enddo
+            ! skip(1:numpatch) = .false.
+            skip(1:numpatch) = maxval(lb_patch(1:ens_size,1:numpatch),dim=1) &
+                            /= minval(lb_patch(1:ens_size,1:numpatch),dim=1)
+            ! do np=1,numpatch
+            !     if(maxval(lb_patch(1:ens_size,np)) /= minval(lb_patch(1:ens_size,np))) skip(np) = .true.
+            ! enddo
 
             print *, '******************* LETKF RUN **********************'
 
@@ -99,13 +101,14 @@ include './parameter.h'
         subroutine atm_da(ens_size,nobs,olat,olon,hdxb,error,omb,    &
                           x_ens_atm,lonxy,latxy,             &
                           infl,radius                                )
-            integer              , intent(in)   ::    ens_size
-            integer              , intent(in)   ::    nobs
-            real    , allocatable, intent(in)   ::    olat(:)
-            real    , allocatable, intent(in)   ::    olon(:)
-            real    , allocatable, intent(in)   ::    hdxb(:,:)
-            real    , allocatable, intent(in)   ::    error(:)
-            real    , allocatable, intent(in)   ::    omb(:)
+
+            integer , intent(in)    ::    ens_size
+            integer , intent(in)    ::    nobs
+            real    , intent(in)    ::    olat(nobs)
+            real    , intent(in)    ::    olon(nobs)
+            real    , intent(in)    ::    hdxb(nobs,ens_size)
+            real    , intent(in)    ::    error(nobs)
+            real    , intent(in)    ::    omb(nobs)
             real(r4),  intent(inout)::    x_ens_atm(ens_size,lon_points_atm,lat_points_atm,nvar_atm)
             real(r4),  intent(in)   ::    lonxy(lon_points_atm,lat_points_atm)
             real(r4),  intent(in)   ::    latxy(lon_points_atm,lat_points_atm)
@@ -130,19 +133,22 @@ include './parameter.h'
             real(r4)                ::    obs_lg_rloc(max_obs)
             real(r4)                ::    trans(ens_size,ens_size)
 
-            call kd_init(obs_tree,olon(1:nobs),olat(1:nobs))
-
-            do nvar=1,nvar_atm
-                do i=1,lon_points_atm
-                    do j=1,lat_points_atm
-                        bkg_mean(i,j,nvar) = sum(x_ens_atm(:,i,j,nvar))/real(ens_size)
-                        bkg(:,   i,j,nvar) = x_ens_atm(:,i,j,nvar) - bkg_mean(i,j,nvar)
-                    enddo
-                enddo
+            call kd_init(obs_tree,olon,olat)
+            
+            bkg_mean = sum(x_ens_atm,dim=1)/real(ens_size,kind=r4)
+            do ens=1,ens_size
+                bkg(ens,:,:,:) = x_ens_atm(ens,:,:,:) - bkg_mean(:,:,:)
             enddo
-
             x_ens_atm(:,:,:,:) = bkg(:,:,:,:)
 
+            ! do nvar=1,nvar_atm
+                ! do i=1,lon_points_atm
+                    ! do j=1,lat_points_atm
+                        ! bkg_mean(i,j,nvar) = sum(x_ens_atm(:,i,j,nvar))/real(ens_size)
+                        ! bkg(:,   i,j,nvar) = x_ens_atm(:,i,j,nvar) - bkg_mean(i,j,nvar)
+                    ! enddo
+                ! enddo
+            ! enddo
             lon_loop: do i=1,lon_points_atm
                 lat_loop: do j=1,lat_points_atm
 
@@ -206,14 +212,14 @@ include './parameter.h'
                           x_ens_lnd,lonxy,latxy,itypwat,             & ! todo_colm_invar #6
                           grid2patch_start,grid2patch_count,         &
                           infl,radius,skip                           )
-            integer              , intent(in)   ::    ens_size
-            integer              , intent(in)   ::    numpatch
-            integer              , intent(in)   ::    nobs
-            real    , allocatable, intent(in)   ::    olat(:)
-            real    , allocatable, intent(in)   ::    olon(:)
-            real    , allocatable, intent(in)   ::    hdxb(:,:)
-            real    , allocatable, intent(in)   ::    error(:)
-            real    , allocatable, intent(in)   ::    omb(:)
+            integer   , intent(in)    ::    ens_size
+            integer   , intent(in)    ::    numpatch
+            integer   , intent(in)    ::    nobs
+            real      , intent(in)    ::    olat(nobs)
+            real      , intent(in)    ::    olon(nobs)
+            real      , intent(in)    ::    hdxb(nobs,ens_size)
+            real      , intent(in)    ::    error(nobs)
+            real      , intent(in)    ::    omb(nobs)
             real(r8)   , intent(inout)::    x_ens_lnd(ens_size,numpatch,nvar_lnd)
             real(r4)   , intent(in)   ::    lonxy(lon_points_lnd,lat_points_lnd)
             real(r4)   , intent(in)   ::    latxy(lon_points_lnd,lat_points_lnd)
@@ -243,17 +249,20 @@ include './parameter.h'
             real(r4)                  ::    obs_lg_rloc(max_obs)
             real(r4)                  ::    trans(ens_size,ens_size)
 
-            call kd_init(obs_tree,olon(1:nobs),olat(1:nobs))
+            call kd_init(obs_tree,olon,olat)
 
-            do nvar=1,nvar_lnd
-                do np=1,numpatch
-                    bkg_mean(np,nvar) = sum(x_ens_lnd(:,np,nvar))/real(ens_size)
-                    bkg(:,   np,nvar) = x_ens_lnd(:,np,nvar) - bkg_mean(np,nvar)
-                enddo
+            bkg_mean = sum(x_ens_lnd,dim=1)/real(ens_size,kind=r4)
+            do ens=1,ens_size
+                bkg(ens,:,:) = x_ens_lnd(ens,:,:) - bkg_mean(:,:)
             enddo
-
             x_ens_lnd(:,:,:) = bkg(:,:,:)
 
+            ! do nvar=1,nvar_lnd
+            !     do np=1,numpatch
+            !         bkg_mean(np,nvar) = sum(x_ens_lnd(:,np,nvar))/real(ens_size)
+            !         bkg(:,   np,nvar) = x_ens_lnd(:,np,nvar) - bkg_mean(np,nvar)
+            !     enddo
+            ! enddo
             lon_loop: do i=1,lon_points_lnd
                 lat_loop: do j=1,lat_points_lnd
 

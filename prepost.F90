@@ -221,12 +221,20 @@ include './parameter.h'
             dx = (edgee_atm-edgew_atm)/(lon_points_atm-1)
             dy = (edgen_atm-edges_atm)/(lat_points_atm-1)
 
-            do j=1,lat_points_atm
-                do i=1,lon_points_atm
-                    latxy(i,j) = edges_atm + (j-1) * dy
-                    lonxy(i,j) = edgew_atm + (i-1) * dx
-                enddo
+            do i=1,lon_points_atm
+                lonxy(i,:) = edgew_atm + (i-1) * dx
             enddo
+            
+            do j=1,lat_points_atm
+                latxy(:,j) = edges_atm + (j-1) * dy
+            enddo
+
+            ! do i=1,lon_points_atm
+                ! do j=1,lat_points_atm
+                    ! latxy(i,j) = edges_atm + (j-1) * dy
+                    ! lonxy(i,j) = edgew_atm + (i-1) * dx
+                ! enddo
+            ! enddo
             
         endsubroutine grapes_grid_init
 
@@ -320,7 +328,7 @@ include './parameter.h'
               i = ixy_patch(k)
               j = jxy_patch(k)
               grid2patch_count(i,j) = grid2patch_count(i,j) + 1
-              if(first_save .or. (i /= i_save .or. j /= j_save)) then
+              if(first_save .or. i/=i_save .or. j/=j_save) then
                     first_save = .false.
                     i_save = i
                     j_save = j
@@ -341,6 +349,7 @@ include './parameter.h'
 
             allocate(lonxy_lnd(lon_points_lnd,lat_points_lnd))
             allocate(latxy_lnd(lon_points_lnd,lat_points_lnd))
+
             do j=1,lat_points_lnd
               do i=1,lon_points_lnd
                 k=grid2patch_start(i,j)
@@ -455,7 +464,7 @@ include './parameter.h'
             ! todo_colm_var #17
             integer , parameter                    ::      lenth = sum(var_len)+1  ! 1 for scv
             real(r8)                               ::      lnd_buf(numpatch,lenth)
-            real(r8)                               ::      scv_inc(numpatch)
+            real(r8)                               ::      scv_check
 
             l = 0
             do cnt=1,nvar_lnd_raw
@@ -505,14 +514,13 @@ include './parameter.h'
                 stop 24
             endif
 
-            scv_inc(:) = 0.0
             do np=1,numpatch
                 if(itypwat(np,1) > itypwat_max) cycle
+                scv_check = 0.0_r8
                 do nl=1,5
-                    scv_inc(np) = scv_inc(np) + lnd_buf(np,15+nl) + lnd_buf(np,30+nl)
+                    scv_check = scv_check + lnd_buf(np,15+nl) + lnd_buf(np,30+nl)
                 enddo
-                lnd_buf(np,lenth) = scv_inc(np)
-                scv_inc(np) = scv_inc(np) - lnd_buf(np,lenth)
+                lnd_buf(np,lenth) = scv_check
             enddo
 
             l = 0
@@ -543,16 +551,15 @@ include './parameter.h'
             real    , allocatable , intent(inout)        ::    omb          (:)
             real    ,               intent(in)           ::    qc_ens
             real    ,               intent(in)           ::    omb_max
-            real                                         ::    hxb_mean
+
+            real                                         ::    hxb_raw      (nobs_raw,ens_size)
+            logical                                      ::    qc_raw       (nobs_raw,ens_size)
+            real                                         ::    hxb_mean     (nobs_raw)
+            logical                                      ::    qc_list      (nobs_raw)
+            logical                                      ::    omb_list     (nobs_raw)
             real                                         ::    hxb1         (ens_size)
             real                                         ::    hxb2         (ens_size)
-            integer                                      ::    s, cnt, ens, ens_min
-
-            allocate(olat(nobs_raw))
-            allocate(olon(nobs_raw))
-            allocate(hdxb(nobs_raw,ens_size))
-            allocate(error(nobs_raw))
-            allocate(omb (nobs_raw))
+            integer                                      ::    s, cnt, ens_min
 
             ens_min = int(ens_size*qc_ens)
             print *, 'ens_size =', ens_size
@@ -561,31 +568,65 @@ include './parameter.h'
                 stop 25
             endif
 
-            nobs = 0
             do s=1,nobs_raw
-                hxb1(:) = tbb (s) + tbb_bmo(s,:)                  ! cal raw ens_size*H(x) 
-                cnt = 0                                           ! valid ens_size with qc = 0
-                do ens=1,ens_size                                      
-                    if(qc_flag(s,ens) /= 0) cycle                     
-                    cnt      = cnt + 1                                
-                    hxb2(cnt) = tbb (s) + tbb_bmo(s,ens)          ! cal cnt*H(x) satisfying qc == 0
-                enddo
-                hxb_mean = sum(hxb2(1:cnt))/real(ens_size)
-                ! todo_obs # replace bad hxb with mean(hxb with good quality)
-                do ens=1,ens_size
-                    if(qc_flag(s,ens) /= 0) hxb1(ens) = hxb_mean
-                enddo
-                if(cnt < ens_min .or. &                           ! valid ens < ens_min
-                   abs(tbb(s)-hxb_mean) > omb_max) cycle          ! abs(omb) > omb_max
-                nobs = nobs + 1
-                olat (nobs)   =   rlat(s)                         ! put raw lat into 
-                olon (nobs)   =   rlon(s)                         ! put raw lon into
-                hdxb (nobs,:) =   hxb1(:) - hxb_mean              ! raw ens_size*H(x) - mean(cnt*H(x))
-                error(nobs)   =   oberr(s)                        ! put raw err into
-                omb  (nobs)   =   tbb(s)  - hxb_mean              ! o - mean(cnt*H(x))
+                hxb_raw(s,1:ens_size) = tbb(s)+tbb_bmo(s,1:ens_size)
             enddo
+            qc_raw  = qc_flag == 0.
+            hxb_mean(1:nobs_raw) = sum(hxb_raw,dim=2,mask=qc_raw)/real(count(mask=qc_raw,dim=2),kind=r4)
+            omb_list(1:nobs_raw) = abs(hxb_mean(1:nobs_raw)-tbb(1:nobs_raw)) <= omb_max
+            qc_list (1:nobs_raw) = count(mask=qc_raw,dim=2) >= ens_min
+            nobs = count(omb_list .and. qc_list)
+            allocate(olat(nobs))
+            allocate(olon(nobs))
+            allocate(hdxb(nobs,ens_size))
+            allocate(error(nobs))
+            allocate(omb (nobs))
+            cnt = 0
+            hxb2= 0.0_r4
+            do s=1,nobs_raw
+                if(.not. omb_list(s) .or. .not. qc_list(s)) cycle
+                cnt = cnt + 1
+                olat(cnt) = rlat(s)
+                olon(cnt) = rlon(s)
+                error(cnt)= oberr(s)
+                omb (cnt) = tbb(s)-hxb_mean(s)
+                hxb1(1:ens_size)=hxb_raw(s,1:ens_size) - hxb_mean(s)
+                hdxb(cnt,1:ens_size) = merge(hxb1(1:ens_size),hxb2(1:ens_size),qc_raw(s,:))
+            enddo
+            if(cnt/=nobs) then
+                print *, 'cnt = ', cnt
+                print *, 'nobs= ', nobs
+                stop 300
+            endif
+
+            ! allocate(olat(nobs_raw))
+            ! allocate(olon(nobs_raw))
+            ! allocate(hdxb(nobs_raw,ens_size))
+            ! allocate(error(nobs_raw))
+            ! allocate(omb (nobs_raw))
+            ! do s=1,nobs_raw
+            !     hxb1(:) = tbb (s) + tbb_bmo(s,:)                  ! cal raw ens_size*H(x) 
+            !     cnt = 0                                           ! valid ens_size with qc = 0
+            !     do ens=1,ens_size                                      
+            !         if(qc_flag(s,ens) /= 0) cycle                     
+            !         cnt      = cnt + 1                                
+            !         hxb2(cnt) = tbb (s) + tbb_bmo(s,ens)          ! cal cnt*H(x) satisfying qc == 0
+            !     enddo
+            !     hxb_mean = sum(hxb2(1:cnt))/real(ens_size,kind=r4)
+            !     ! todo_obs # replace bad hxb with mean(hxb with good quality)
+            !     do ens=1,ens_size
+            !         if(qc_flag(s,ens) /= 0) hxb1(ens) = hxb_mean
+            !     enddo
+            !     if(cnt < ens_min .or. &                           ! valid ens < ens_min
+            !        abs(tbb(s)-hxb_mean) > omb_max) cycle          ! abs(omb) > omb_max
+            !     nobs = nobs + 1
+            !     olat (nobs)   =   rlat(s)                         ! put raw lat into 
+            !     olon (nobs)   =   rlon(s)                         ! put raw lon into
+            !     hdxb (nobs,:) =   hxb1(:) - hxb_mean              ! raw ens_size*H(x) - mean(cnt*H(x))
+            !     error(nobs)   =   oberr(s)                        ! put raw err into
+            !     omb  (nobs)   =   tbb(s)  - hxb_mean              ! o - mean(cnt*H(x))
+            ! enddo
 
         endsubroutine
-
 
 endmodule prepost
