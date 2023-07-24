@@ -15,22 +15,10 @@ include './parameter.h'
     public    ::     letkf_drv, letkf_fnl
 
     real(r4), parameter                 ::    stdev2max = sqrt(40.0/3.0)
-    integer , parameter                 ::    max_obs = 500
+    integer , parameter                 ::    max_obs = 100
     real(r4)                            ::    max_search_dist
     real(r4)                            ::    dist
     real(r4)                            ::    rd
-    integer                             ::    obs_ij_cnt
-    integer                             ::    obs_ij_idx(max_obs)
-    real(r4)                            ::    obs_ij_dist(max_obs)
-    real(r4),allocatable                ::    obs_ij_hdxb(:,:)
-    real(r4)                            ::    obs_ij_rdiag(max_obs)
-    real(r4)                            ::    obs_ij_dep(max_obs)
-    integer                             ::    obs_lg_cnt
-    real(r4),allocatable                ::    obs_lg_hdxb(:,:)
-    real(r4)                            ::    obs_lg_rdiag(max_obs)
-    real(r4)                            ::    obs_lg_dep(max_obs)
-    real(r4)                            ::    obs_lg_rloc(max_obs)
-    real(r4),allocatable                ::    trans(:,:)
 
     contains
         
@@ -80,11 +68,11 @@ include './parameter.h'
             integer ,  intent(in)   ::    itypwat(numpatch,1)       ! todo_colm_invar #4
             integer,   intent(in)   ::    grid2patch_start(lon_points_lnd,lat_points_lnd)
             integer,   intent(in)   ::    grid2patch_count(lon_points_lnd,lat_points_lnd)
-            real                 , intent(in)   ::    infl
-            real                 , intent(in)   ::    radius(2)
-            integer              , intent(in)   ::    lb_patch(ens_size,numpatch)
-            logical                             ::    skip(numpatch)
-            integer                             ::    np
+            real   ,   intent(in)   ::    infl
+            real   ,   intent(in)   ::    radius(2)
+            integer,   intent(in)   ::    lb_patch(ens_size,numpatch)
+            logical                 ::    skip(numpatch)
+            integer                 ::    np
 
             if(nobs == 0) return
 
@@ -128,6 +116,19 @@ include './parameter.h'
             type(kd_root)           ::    obs_tree
             real(r4)                ::    bkg_mean(lon_points_atm,lat_points_atm,nvar_atm)
             real(r4)                ::    bkg(ens_size,lon_points_atm,lat_points_atm,nvar_atm)
+
+            integer                 ::    obs_ij_cnt
+            integer                 ::    obs_ij_idx(max_obs)
+            real(r4)                ::    obs_ij_dist(max_obs)
+            real(r4)                ::    obs_ij_hdxb(ens_size,max_obs)
+            real(r4)                ::    obs_ij_rdiag(max_obs)
+            real(r4)                ::    obs_ij_dep(max_obs)
+            integer                 ::    obs_lg_cnt
+            real(r4)                ::    obs_lg_hdxb(ens_size,max_obs)
+            real(r4)                ::    obs_lg_rdiag(max_obs)
+            real(r4)                ::    obs_lg_dep(max_obs)
+            real(r4)                ::    obs_lg_rloc(max_obs)
+            real(r4)                ::    trans(ens_size,ens_size)
 
             call kd_init(obs_tree,olon(1:nobs),olat(1:nobs))
 
@@ -223,11 +224,24 @@ include './parameter.h'
             real       , intent(in)   ::    radius(2)
             logical    , intent(in)   ::    skip(numpatch)
 
-            integer                             ::    i, j, nvar, ens, ns, idx
-            type(kd_root)                       ::    obs_tree
-            real(r4)                  ::    bkg_mean(numpatch,nvar_lnd)
-            real(r4)                  ::    bkg(ens_size,numpatch,nvar_lnd)
-            integer                             ::    np
+            integer                   ::    i, j, nvar, ens, ns, idx
+            type(kd_root)             ::    obs_tree
+            real(r8)                  ::    bkg_mean(numpatch,nvar_lnd)
+            real(r8)                  ::    bkg(ens_size,numpatch,nvar_lnd)
+            integer                   ::    np
+
+            integer                   ::    obs_ij_cnt
+            integer                   ::    obs_ij_idx(max_obs)
+            real(r4)                  ::    obs_ij_dist(max_obs)
+            real(r4)                  ::    obs_ij_hdxb(ens_size,max_obs)
+            real(r4)                  ::    obs_ij_rdiag(max_obs)
+            real(r4)                  ::    obs_ij_dep(max_obs)
+            integer                   ::    obs_lg_cnt
+            real(r4)                  ::    obs_lg_hdxb(ens_size,max_obs)
+            real(r4)                  ::    obs_lg_rdiag(max_obs)
+            real(r4)                  ::    obs_lg_dep(max_obs)
+            real(r4)                  ::    obs_lg_rloc(max_obs)
+            real(r4)                  ::    trans(ens_size,ens_size)
 
             call kd_init(obs_tree,olon(1:nobs),olat(1:nobs))
 
@@ -284,8 +298,8 @@ include './parameter.h'
                         do nvar=1,nvar_lnd
                             do np=grid2patch_start(i,j),grid2patch_start(i,j)+grid2patch_count(i,j)-1
                                 if(itypwat(np,1) > itypwat_max .or. skip(np)) cycle
-                                call dgemm('n', 'n', 1, ens_size, ens_size, 1.0_r8, real(bkg(:,np,nvar),kind=r8), &
-                                    1, trans, ens_size, 0.0_r8, x_ens_lnd(:,np,nvar), 1)
+                                call dgemm('n', 'n', 1, ens_size, ens_size, 1.0_r8, bkg(:,np,nvar), &
+                                    1, real(trans,kind=r8), ens_size, 0.0_r8, x_ens_lnd(:,np,nvar), 1)
                             enddo
                         enddo
                     end if
@@ -295,7 +309,7 @@ include './parameter.h'
 
             do ens=1,ens_size
                   x_ens_lnd(ens,:,:) &
-                = x_ens_lnd(ens,:,:) + real(bkg_mean(:,:),kind=r8)
+                = x_ens_lnd(ens,:,:) + bkg_mean(:,:)
             enddo
 
             call kd_free(obs_tree)
