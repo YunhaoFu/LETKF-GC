@@ -11,7 +11,8 @@ module letkf
 
 include './parameter.h'
 
-    public    ::     letkf_ini, letkf_drv, letkf_fnl
+    ! public    ::     letkf_ini, 
+    public    ::     letkf_drv, letkf_fnl
 
     real(r4), parameter                 ::    stdev2max = sqrt(40.0/3.0)
     integer , parameter                 ::    max_obs = 500
@@ -33,28 +34,28 @@ include './parameter.h'
 
     contains
         
-        subroutine letkf_ini(ens_size,numpatch,nobs,olat,olon,hdxb,error,omb,&
-                             x_ens_atm,lonxy_atm,latxy_atm,             &
-                             x_ens_lnd,lonxy_lnd,latxy_lnd,itypwat      ) ! todo_colm_invar #1
-            integer              , intent(in)   ::    ens_size
-            integer              , intent(in)   ::    numpatch
-            integer              , intent(in)   ::    nobs
-            real    , allocatable, intent(in)   ::    olat(:)
-            real    , allocatable, intent(in)   ::    olon(:)
-            real    , allocatable, intent(in)   ::    hdxb(:,:)
-            real    , allocatable, intent(in)   ::    error(:)
-            real    , allocatable, intent(in)   ::    omb(:)
-            real(r4), allocatable, intent(in)   ::    x_ens_atm(:,:,:,:)
-            real(r4), allocatable, intent(in)   ::    lonxy_atm(:,:)
-            real(r4), allocatable, intent(in)   ::    latxy_atm(:,:)
-            real(r8), allocatable, intent(in)   ::    x_ens_lnd(:,:,:)
-            real(r4), allocatable, intent(in)   ::    lonxy_lnd(:,:)
-            real(r4), allocatable, intent(in)   ::    latxy_lnd(:,:)
-            integer , allocatable, intent(in)   ::    itypwat(:,:)       ! todo_colm_invar #2
+        ! subroutine letkf_ini(ens_size,numpatch,nobs,olat,olon,hdxb,error,omb,&
+        !                      x_ens_atm,lonxy_atm,latxy_atm,             &
+        !                      x_ens_lnd,lonxy_lnd,latxy_lnd,itypwat      ) ! todo_colm_invar #1
+        !     integer              , intent(in)   ::    ens_size
+        !     integer              , intent(in)   ::    numpatch
+        !     integer              , intent(in)   ::    nobs
+        !     real    , allocatable, intent(in)   ::    olat(:)
+        !     real    , allocatable, intent(in)   ::    olon(:)
+        !     real    , allocatable, intent(in)   ::    hdxb(:,:)
+        !     real    , allocatable, intent(in)   ::    error(:)
+        !     real    , allocatable, intent(in)   ::    omb(:)
+        !     real(r4), allocatable, intent(in)   ::    x_ens_atm(:,:,:,:)
+        !     real(r4), allocatable, intent(in)   ::    lonxy_atm(:,:)
+        !     real(r4), allocatable, intent(in)   ::    latxy_atm(:,:)
+        !     real(r8), allocatable, intent(in)   ::    x_ens_lnd(:,:,:)
+        !     real(r4), allocatable, intent(in)   ::    lonxy_lnd(:,:)
+        !     real(r4), allocatable, intent(in)   ::    latxy_lnd(:,:)
+        !     integer , allocatable, intent(in)   ::    itypwat(:,:)       ! todo_colm_invar #2
 
-            if(nobs == 0) return
+        !     if(nobs == 0) return
 
-        endsubroutine letkf_ini
+        ! endsubroutine letkf_ini
 
         subroutine letkf_drv(ens_size,numpatch,nobs,olat,olon,hdxb,error,omb, &
                              x_ens_atm,lonxy_atm,latxy_atm,             &
@@ -70,18 +71,18 @@ include './parameter.h'
             real    , allocatable, intent(in)   ::    hdxb(:,:)
             real    , allocatable, intent(in)   ::    error(:)
             real    , allocatable, intent(in)   ::    omb(:)
-            real(r4), allocatable, intent(inout)::    x_ens_atm(:,:,:,:)
-            real(r4), allocatable, intent(in)   ::    lonxy_atm(:,:)
-            real(r4), allocatable, intent(in)   ::    latxy_atm(:,:)
-            real(r8), allocatable, intent(inout)::    x_ens_lnd(:,:,:)
-            real(r4), allocatable, intent(in)   ::    lonxy_lnd(:,:)
-            real(r4), allocatable, intent(in)   ::    latxy_lnd(:,:)
-            integer , allocatable, intent(in)   ::    itypwat(:,:)       ! todo_colm_invar #4
-            integer, allocatable , intent(in)   ::    grid2patch_start(:,:)
-            integer, allocatable , intent(in)   ::    grid2patch_count(:,:)
+            real(r4),  intent(inout)::    x_ens_atm(ens_size,lon_points_atm,lat_points_atm,nvar_atm)
+            real(r4),  intent(in)   ::    lonxy_atm(lon_points_atm,lat_points_atm)
+            real(r4),  intent(in)   ::    latxy_atm(lon_points_atm,lat_points_atm)
+            real(r8),  intent(inout)::    x_ens_lnd(ens_size,numpatch,nvar_lnd)
+            real(r4),  intent(in)   ::    lonxy_lnd(lon_points_lnd,lat_points_lnd)
+            real(r4),  intent(in)   ::    latxy_lnd(lon_points_lnd,lat_points_lnd)
+            integer ,  intent(in)   ::    itypwat(numpatch,1)       ! todo_colm_invar #4
+            integer,   intent(in)   ::    grid2patch_start(lon_points_lnd,lat_points_lnd)
+            integer,   intent(in)   ::    grid2patch_count(lon_points_lnd,lat_points_lnd)
             real                 , intent(in)   ::    infl
             real                 , intent(in)   ::    radius(2)
-            integer, allocatable , intent(in)   ::    lb_patch(:,:)
+            integer              , intent(in)   ::    lb_patch(ens_size,numpatch)
             logical                             ::    skip(numpatch)
             integer                             ::    np
 
@@ -108,7 +109,7 @@ include './parameter.h'
         endsubroutine letkf_drv
 
         subroutine atm_da(ens_size,nobs,olat,olon,hdxb,error,omb,    &
-                          x_ens_atm,lonxy,latxy,                     &
+                          x_ens_atm,lonxy,latxy,             &
                           infl,radius                                )
             integer              , intent(in)   ::    ens_size
             integer              , intent(in)   ::    nobs
@@ -117,21 +118,18 @@ include './parameter.h'
             real    , allocatable, intent(in)   ::    hdxb(:,:)
             real    , allocatable, intent(in)   ::    error(:)
             real    , allocatable, intent(in)   ::    omb(:)
-            real(r4), allocatable, intent(inout)::    x_ens_atm(:,:,:,:)
-            real(r4), allocatable, intent(in)   ::    lonxy(:,:)
-            real(r4), allocatable, intent(in)   ::    latxy(:,:)
-            real                 , intent(in)   ::    infl
-            real                 , intent(in)   ::    radius(2)
+            real(r4),  intent(inout)::    x_ens_atm(ens_size,lon_points_atm,lat_points_atm,nvar_atm)
+            real(r4),  intent(in)   ::    lonxy(lon_points_atm,lat_points_atm)
+            real(r4),  intent(in)   ::    latxy(lon_points_atm,lat_points_atm)
+            real    , intent(in)    ::    infl
+            real    , intent(in)    ::    radius(2)
 
-            integer                             ::    i, j, nvar, ens, ns, idx
-            type(kd_root)                       ::    obs_tree
-            real(r4), allocatable               ::    bkg_mean(:,:,:)
-            real(r4), allocatable               ::    bkg(:,:,:,:)
+            integer                 ::    i, j, nvar, ens, ns, idx
+            type(kd_root)           ::    obs_tree
+            real(r4)                ::    bkg_mean(lon_points_atm,lat_points_atm,nvar_atm)
+            real(r4)                ::    bkg(ens_size,lon_points_atm,lat_points_atm,nvar_atm)
 
             call kd_init(obs_tree,olon(1:nobs),olat(1:nobs))
-
-            allocate(bkg_mean(lon_points_atm,lat_points_atm,nvar_atm))
-            allocate(bkg(ens_size,lon_points_atm,lat_points_atm,nvar_atm))
 
             do nvar=1,nvar_atm
                 do i=1,lon_points_atm
@@ -199,9 +197,6 @@ include './parameter.h'
                 = x_ens_atm(ens,:,:,:) + bkg_mean(:,:,:)
             enddo
 
-            deallocate(bkg_mean)
-            deallocate(bkg)
-
             call kd_free(obs_tree)
 
         endsubroutine atm_da
@@ -218,26 +213,23 @@ include './parameter.h'
             real    , allocatable, intent(in)   ::    hdxb(:,:)
             real    , allocatable, intent(in)   ::    error(:)
             real    , allocatable, intent(in)   ::    omb(:)
-            real(r8), allocatable, intent(inout)::    x_ens_lnd(:,:,:)
-            real(r4), allocatable, intent(in)   ::    lonxy(:,:)
-            real(r4), allocatable, intent(in)   ::    latxy(:,:)
-            integer , allocatable, intent(in)   ::    itypwat(:,:)       ! todo_colm_invar #7
-            integer, allocatable , intent(in)   ::    grid2patch_start(:,:)
-            integer, allocatable , intent(in)   ::    grid2patch_count(:,:)
-            real                 , intent(in)   ::    infl
-            real                 , intent(in)   ::    radius(2)
-            logical              , intent(in)   ::    skip(numpatch)
+            real(r8)   , intent(inout)::    x_ens_lnd(ens_size,numpatch,nvar_lnd)
+            real(r4)   , intent(in)   ::    lonxy(lon_points_lnd,lat_points_lnd)
+            real(r4)   , intent(in)   ::    latxy(lon_points_lnd,lat_points_lnd)
+            integer    , intent(in)   ::    itypwat(numpatch,1)       ! todo_colm_invar #7
+            integer    , intent(in)   ::    grid2patch_start(lon_points_lnd,lat_points_lnd)
+            integer    , intent(in)   ::    grid2patch_count(lon_points_lnd,lat_points_lnd)
+            real       , intent(in)   ::    infl
+            real       , intent(in)   ::    radius(2)
+            logical    , intent(in)   ::    skip(numpatch)
 
             integer                             ::    i, j, nvar, ens, ns, idx
             type(kd_root)                       ::    obs_tree
-            real(r4), allocatable               ::    bkg_mean(:,:)
-            real(r4), allocatable               ::    bkg(:,:,:)
+            real(r4)                  ::    bkg_mean(numpatch,nvar_lnd)
+            real(r4)                  ::    bkg(ens_size,numpatch,nvar_lnd)
             integer                             ::    np
 
             call kd_init(obs_tree,olon(1:nobs),olat(1:nobs))
-
-            allocate(bkg_mean(numpatch,nvar_lnd))
-            allocate(bkg(ens_size,numpatch,nvar_lnd))
 
             do nvar=1,nvar_lnd
                 do np=1,numpatch
@@ -248,8 +240,8 @@ include './parameter.h'
 
             x_ens_lnd(:,:,:) = bkg(:,:,:)
 
-            lon_loop: do i=1,lon_points_atm
-                lat_loop: do j=1,lat_points_atm
+            lon_loop: do i=1,lon_points_lnd
+                lat_loop: do j=1,lat_points_lnd
 
                     dist=get_dist(latxy(i,j),radius)
                     max_search_dist = dist * stdev2max
@@ -305,9 +297,6 @@ include './parameter.h'
                   x_ens_lnd(ens,:,:) &
                 = x_ens_lnd(ens,:,:) + real(bkg_mean(:,:),kind=r8)
             enddo
-
-            deallocate(bkg_mean)
-            deallocate(bkg)
 
             call kd_free(obs_tree)
 

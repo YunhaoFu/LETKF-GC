@@ -49,9 +49,9 @@ include './parameter.h'
                 lonxy_lnd, latxy_lnd,                         &
                 itypwat,lb_patch                              ) ! todo_colm_invar #2
     
-    call letkf_ini(ens_size,numpatch,nobs,olat,olon,hdxb,error,omb,&
-                   x_ens_atm,lonxy_atm,latxy_atm,             &
-                   x_ens_lnd,lonxy_lnd,latxy_lnd,itypwat      ) ! todo_colm_invar #3
+    ! call letkf_ini(ens_size,numpatch,nobs,olat,olon,hdxb,error,omb,&
+    !                x_ens_atm,lonxy_atm,latxy_atm,             &
+    !                x_ens_lnd,lonxy_lnd,latxy_lnd,itypwat      ) ! todo_colm_invar #3
 
     call letkf_drv(ens_size,numpatch,nobs,olat,olon,hdxb,error,omb,    &
                    x_ens_atm,lonxy_atm,latxy_atm,             &
