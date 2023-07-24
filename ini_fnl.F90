@@ -52,6 +52,36 @@ include './parameter.h'
             read(unit=fu,nml=letkf)
             close(unit=fu)
 
+            if(ens_size <= 0) then
+                write(*, "('Error ens_size : ', I3.3)") ens_size
+                write(*, "('ens_size must > 0')")
+                stop 18
+            endif
+
+            if(qc_ens <= 0 .or. qc_ens > 1) then
+                write(*, "('Error qc_ens   : ', F10.5)") qc_ens
+                write(*, "('qc_ens must > 0 ; <= 1')")
+                stop 18
+            endif
+
+            if(omb_max <= 0) then
+                write(*, "('Error omb_max  : ', F10.5)") omb_max
+                write(*, "('omb_max must > 0')")
+                stop 18
+            endif
+
+            if(infl < 1) then
+                write(*, "('Error infl     : ', F10.5)") infl
+                write(*, "('infl must >= 1')")
+                stop 18
+            endif
+
+            if(any(radius < 0)) then
+                write(*, "('Error radius   : ', 2F14.5)") radius
+                write(*, "('radius must > 0')")
+                stop 18
+            endif
+
             write(*, "('bkg dir  : ', A)") trim(bkg_dir)
             write(*, "('ana dir  : ', A)") trim(ana_dir)
             write(*, "('obs dir  : ', A)") trim(obs_dir)
@@ -68,14 +98,14 @@ include './parameter.h'
                                lonxy_lnd,latxy_lnd,                &
                                v1,lb_patch)                              ! todo_colm_invar #1 
             integer              , intent(in)       ::      nobs
-            real(r4), allocatable, intent(out)      ::      lonxy_atm(:,:)
-            real(r4), allocatable, intent(out)      ::      latxy_atm(:,:)
-            integer , allocatable, intent(out)      ::      grid2patch_start(:,:)
-            integer , allocatable, intent(out)      ::      grid2patch_count(:,:)
-            real(r4), allocatable, intent(out)      ::      lonxy_lnd(:,:)
-            real(r4), allocatable, intent(out)      ::      latxy_lnd(:,:)
-            integer , allocatable, intent(out)      ::      v1(:,:) ! todo_colm_invar #2
-            integer , allocatable, intent(out)      ::      lb_patch(:,:)
+            real(r4), allocatable, intent(inout)    ::      lonxy_atm(:,:)
+            real(r4), allocatable, intent(inout)    ::      latxy_atm(:,:)
+            integer , allocatable, intent(inout)    ::      grid2patch_start(:,:)
+            integer , allocatable, intent(inout)    ::      grid2patch_count(:,:)
+            real(r4), allocatable, intent(inout)    ::      lonxy_lnd(:,:)
+            real(r4), allocatable, intent(inout)    ::      latxy_lnd(:,:)
+            integer , allocatable, intent(inout)    ::      v1(:,:) ! todo_colm_invar #2
+            integer , allocatable, intent(inout)    ::      lb_patch(:,:)
             integer                                 ::      cnt1=0
 
             if(nobs > 0) then

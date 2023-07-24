@@ -548,12 +548,12 @@ include './parameter.h'
                            nobs,olat,olon,hdxb,error,omb,qc_ens,omb_max           )
             integer               , intent(in)           ::    ens_size
             integer               , intent(in)           ::    nobs_raw
-            real    , allocatable , intent(in)           ::    rlat         (:)
-            real    , allocatable , intent(in)           ::    rlon         (:)
-            real    , allocatable , intent(in)           ::    tbb          (:)
-            integer , allocatable , intent(in)           ::    qc_flag      (:,:)
-            real    , allocatable , intent(in)           ::    oberr        (:) 
-            real    , allocatable , intent(in)           ::    tbb_bmo      (:,:)
+            real                  , intent(in)           ::    rlat         (nobs_raw)
+            real                  , intent(in)           ::    rlon         (nobs_raw)
+            real                  , intent(in)           ::    tbb          (nobs_raw)
+            integer               , intent(in)           ::    qc_flag      (nobs_raw,ens_size)
+            real                  , intent(in)           ::    oberr        (nobs_raw) 
+            real                  , intent(in)           ::    tbb_bmo      (nobs_raw,ens_size)
             integer               , intent(inout)        ::    nobs
             real    , allocatable , intent(inout)        ::    olat         (:)
             real    , allocatable , intent(inout)        ::    olon         (:)
@@ -563,8 +563,8 @@ include './parameter.h'
             real    ,               intent(in)           ::    qc_ens
             real    ,               intent(in)           ::    omb_max
             real                                         ::    hxb_mean
-            real    , allocatable                        ::    hxb1         (:)
-            real    , allocatable                        ::    hxb2         (:)
+            real                                         ::    hxb1         (ens_size)
+            real                                         ::    hxb2         (ens_size)
             integer                                      ::    s, cnt, ens, ens_min
 
             allocate(olat(nobs_raw))
@@ -572,8 +572,6 @@ include './parameter.h'
             allocate(hdxb(nobs_raw,ens_size))
             allocate(error(nobs_raw))
             allocate(omb (nobs_raw))
-            allocate(hxb1(ens_size))
-            allocate(hxb2(ens_size))
 
             ens_min = int(ens_size*qc_ens)
             print *, 'ens_size =', ens_size
@@ -605,9 +603,6 @@ include './parameter.h'
                 error(nobs)   =   oberr(s)                        ! put raw err into
                 omb  (nobs)   =   tbb(s)  - hxb_mean              ! o - mean(cnt*H(x))
             enddo
-
-            deallocate(hxb1)
-            deallocate(hxb2)
 
         endsubroutine
 
